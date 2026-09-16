@@ -7,7 +7,7 @@ Uses a greedy/value-based heuristic rather than a full ILP solver: simple,
 fast, no extra dependencies, and close enough to optimal for a v1 — good
 enough to be genuinely useful, not claiming to be provably optimal.
 """
-from .model import PlayerScore
+from model import PlayerScore
 
 SQUAD_SHAPE = {"GKP": 2, "DEF": 5, "MID": 5, "FWD": 3}
 MAX_PER_TEAM = 3

@@ -4,9 +4,9 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import fpl_client
-from .model import score_players
-from .optimizer import build_squad
+import fpl_client
+from model import score_players
+from optimizer import build_squad
 
 app = FastAPI(title="FPL Assistant")
 
