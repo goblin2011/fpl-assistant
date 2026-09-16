@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import fpl_client
 from model import score_players
 from optimizer import build_squad
+from transfers import build_transfer_plan
 
 app = FastAPI(title="FPL Assistant")
 
@@ -107,30 +108,11 @@ async def my_team(team_id: int):
 
     my_players.sort(key=lambda p: p["score"], reverse=True)
 
-    # Transfer suggestions: for each of the manager's weakest players, find a
-    # same-position replacement (not already owned) with a notably higher
-    # score that fits within a reasonable price step-up.
-    owned_ids = {p["id"] for p in my_players}
-    already_suggested_ids: set = set()
-    suggestions = []
-    for owned in sorted(my_players, key=lambda p: p["score"])[:5]:
-        pool = [
-            p for p in all_scores.values()
-            if p.position == owned["position"]
-            and p.id not in owned_ids
-            and p.id not in already_suggested_ids
-            and p.price <= owned["price"] + 1.5
-            and p.score > owned["score"] + 8
-        ]
-        pool.sort(key=lambda p: p.score, reverse=True)
-        if pool:
-            best = pool[0]
-            already_suggested_ids.add(best.id)
-            suggestions.append({
-                "out": {"name": owned["name"], "score": owned["score"], "price": owned["price"]},
-                "in": {"name": best.name, "score": best.score, "price": best.price},
-                "score_gain": round(best.score - owned["score"], 1),
-            })
+    # Bank balance (in tenths of £m in the API, e.g. 3 = £0.3m) is the real
+    # constraint on what transfers are actually affordable — a suggestion
+    # that costs more than this can't be made without selling something else.
+    bank = round(picks_data.get("entry_history", {}).get("bank", 0) / 10.0, 1)
+    transfer_plan = build_transfer_plan(my_players, all_scores, bank)
 
     return {
         "team_name": entry.get("name"),
@@ -138,5 +120,5 @@ async def my_team(team_id: int):
         "overall_rank": entry.get("summary_overall_rank"),
         "gameweek_used": event,
         "squad": my_players,
-        "transfer_suggestions": suggestions,
+        "transfer_plan": transfer_plan,
     }

@@ -3,48 +3,200 @@
 <head>
 <meta charset="UTF-8" />
 <title>FPL Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root { color-scheme: light dark; }
-  body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 1100px; margin: 0 auto; padding: 24px 16px; background: #0f1115; color: #e8e8ec; }
-  h1 { font-size: 1.4rem; margin-bottom: 4px; }
-  .sub { color: #9a9aa5; margin-bottom: 24px; font-size: 0.9rem; }
-  .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
-  .tab-btn { background: #1b1e27; border: 1px solid #2c2f3a; color: #cfd0d6; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; }
-  .tab-btn.active { background: #3d2fd6; border-color: #3d2fd6; color: white; }
+  :root {
+    --bg: #F5F3F8;
+    --surface: #FFFFFF;
+    --surface-alt: #FBFAFD;
+    --border: #E7E2EF;
+    --ink: #1B1025;
+    --ink-muted: #756C86;
+    --ink-faint: #A69DB5;
+    --primary: #37003C;
+    --primary-light: #5B2065;
+    --accent: #E90052;
+    --accent-soft: #FCE3EE;
+    --gold: #B8860B;
+    --gold-soft: #F6ECD2;
+    --good: #0E8A5F;
+    --good-soft: #E1F5EC;
+    --mid: #B4790E;
+    --mid-soft: #FAF0DD;
+    --warn: #C8344D;
+    --warn-soft: #FBE6EA;
+    --sky: #1D5FA8;
+    --shadow: 0 1px 2px rgba(27,16,37,0.04), 0 6px 16px rgba(27,16,37,0.06);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, Segoe UI, Roboto, sans-serif;
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 32px 20px 64px;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- Header ---------- */
+  .brand { display: flex; align-items: center; gap: 16px; margin-bottom: 6px; }
+  .crest { flex: none; filter: drop-shadow(0 3px 6px rgba(55,0,60,0.25)); }
+  .brand-text h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 2rem;
+    line-height: 1;
+    margin: 0;
+    color: var(--primary);
+  }
+  .brand-text .tag {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    color: var(--accent);
+    margin-top: 2px;
+  }
+  .sub { color: var(--ink-muted); margin: 14px 0 28px; font-size: 0.92rem; max-width: 62ch; line-height: 1.5; }
+
+  /* ---------- Tabs ---------- */
+  .tabs { display: flex; gap: 6px; margin-bottom: 22px; flex-wrap: wrap; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+  .tab-btn {
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--ink-muted);
+    padding: 10px 6px;
+    margin-right: 22px;
+    cursor: pointer;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 1.02rem;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .tab-btn:hover { color: var(--primary); }
+  .tab-btn.active { color: var(--primary); border-bottom-color: var(--accent); }
   .panel { display: none; }
   .panel.active { display: block; }
-  .controls { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
-  select, input, button.action { background: #1b1e27; border: 1px solid #2c2f3a; color: #e8e8ec; padding: 6px 10px; border-radius: 6px; font-size: 0.85rem; }
-  button.action { cursor: pointer; background: #3d2fd6; border-color: #3d2fd6; }
-  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #23262f; }
-  th { color: #9a9aa5; font-weight: 600; }
-  .pos-GKP { color: #f0c95e; } .pos-DEF { color: #6ec1ff; } .pos-MID { color: #7ee38a; } .pos-FWD { color: #ff8e7a; }
-  .score { font-weight: 700; }
-  .card { background: #1b1e27; border: 1px solid #2c2f3a; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+
+  /* ---------- Controls ---------- */
+  .controls { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; }
+  select, input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--ink);
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-family: inherit;
+  }
+  select:focus, input:focus { outline: none; border-color: var(--primary-light); }
+  button.action {
+    cursor: pointer;
+    background: var(--primary);
+    border: 1px solid var(--primary);
+    color: #fff;
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 0.92rem;
+    transition: background 0.15s ease;
+  }
+  button.action:hover { background: var(--primary-light); }
+
+  /* ---------- Cards ---------- */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 18px; box-shadow: var(--shadow); }
+  .card h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: var(--primary);
+    margin: 0 0 14px;
+  }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
-  .pill { background: #23263080; border-radius: 8px; padding: 10px; }
-  .pill .n { font-weight: 700; }
-  .muted { color: #9a9aa5; font-size: 0.8rem; }
-  .cap-badge { background: #f0c95e; color: #14151a; border-radius: 5px; padding: 1px 5px; font-size: 0.7rem; margin-left: 6px; }
-  .vc-badge { background: #6ec1ff; color: #14151a; border-radius: 5px; padding: 1px 5px; font-size: 0.7rem; margin-left: 6px; }
-  .status-badge { background: #ff8e7a33; color: #ff8e7a; border-radius: 5px; padding: 1px 5px; font-size: 0.7rem; margin-left: 6px; }
-  .sp-badge { background: #7ee38a33; color: #7ee38a; border-radius: 5px; padding: 1px 5px; font-size: 0.7rem; margin-left: 6px; }
-  table { border-spacing: 0 4px; border-collapse: separate; }
-  tbody tr { background: #171922; }
-  td.accent { width: 54px; padding: 6px 8px; border-radius: 8px 0 0 8px; text-align: center; }
-  tr td:last-child { border-radius: 0 8px 8px 0; }
-  tr th, tr td { border-bottom: none; }
-  .player-photo { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; object-position: top; background: #d8dde6; border: 2px solid rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.4); display: block; }
-  .player-cell { display: flex; align-items: center; gap: 10px; }
-  .loading { color: #9a9aa5; padding: 20px 0; }
-  .err { color: #ff8e7a; }
-  input#teamId { width: 160px; }
+  .pill { background: var(--surface-alt); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .pill .n { font-weight: 700; font-size: 1.05rem; color: var(--ink); }
+  .muted { color: var(--ink-muted); font-size: 0.82rem; }
+
+  /* ---------- Table ---------- */
+  table { width: 100%; border-spacing: 0 6px; border-collapse: separate; font-size: 0.86rem; }
+  th, td { text-align: left; padding: 10px 12px; }
+  th {
+    color: var(--ink-faint);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.76rem;
+    padding-bottom: 8px;
+  }
+  tbody tr { background: var(--surface); box-shadow: var(--shadow); }
+  tbody tr:hover { background: var(--surface-alt); }
+  td.accent { width: 58px; padding: 6px 8px; border-radius: 10px 0 0 10px; text-align: center; }
+  tr td:last-child { border-radius: 0 10px 10px 0; }
+
+  .pos-GKP { color: var(--gold); font-weight: 700; letter-spacing: 0.03em; }
+  .pos-DEF { color: var(--sky); font-weight: 700; letter-spacing: 0.03em; }
+  .pos-MID { color: var(--good); font-weight: 700; letter-spacing: 0.03em; }
+  .pos-FWD { color: var(--accent); font-weight: 700; letter-spacing: 0.03em; }
+
+  .score-pill { display: inline-block; padding: 3px 10px; border-radius: 20px; font-weight: 700; font-size: 0.88rem; }
+  .score-hi { background: var(--good-soft); color: var(--good); }
+  .score-mid { background: var(--mid-soft); color: var(--mid); }
+  .score-lo { background: var(--surface-alt); color: var(--ink-muted); }
+
+  .player-photo { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; object-position: top; background: #e9e5f0; border: 2px solid rgba(255,255,255,0.9); box-shadow: 0 1px 3px rgba(27,16,37,0.25); display: block; margin: 0 auto; }
+
+  .cap-badge { background: var(--gold); color: #fff; border-radius: 5px; padding: 1px 6px; font-size: 0.68rem; font-weight: 700; margin-left: 6px; letter-spacing: 0.03em; }
+  .vc-badge { background: var(--sky); color: #fff; border-radius: 5px; padding: 1px 6px; font-size: 0.68rem; font-weight: 700; margin-left: 6px; letter-spacing: 0.03em; }
+  .status-badge { background: var(--warn-soft); color: var(--warn); border-radius: 5px; padding: 1px 6px; font-size: 0.68rem; font-weight: 600; margin-left: 6px; }
+  .sp-badge { background: var(--good-soft); color: var(--good); border-radius: 5px; padding: 1px 6px; font-size: 0.68rem; font-weight: 600; margin-left: 6px; }
+
+  .loading { color: var(--ink-muted); padding: 24px 4px; font-size: 0.9rem; }
+  .err { color: var(--warn); background: var(--warn-soft); padding: 12px 14px; border-radius: 8px; font-size: 0.88rem; }
+  input#teamId { width: 170px; }
+
+  @media (max-width: 640px) {
+    .brand-text h1 { font-size: 1.5rem; }
+    table { font-size: 0.78rem; }
+    th, td { padding: 8px 6px; }
+  }
 </style>
 </head>
 <body>
-  <h1>FPL Assistant</h1>
-  <div class="sub">Weighted score = form + fixture ease + underlying stats (xG/xA) + value + availability. Data refreshes from the official FPL API (cached 15 min).</div>
+  <div class="brand">
+    <svg class="crest" width="52" height="58" viewBox="0 0 52 58" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="crestFill" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#5B2065" />
+          <stop offset="100%" stop-color="#37003C" />
+        </linearGradient>
+      </defs>
+      <path d="M26 1 L49 10 V27 C49 42 39 52 26 57 C13 52 3 42 3 27 V10 Z" fill="url(#crestFill)" stroke="#B8860B" stroke-width="1.4"/>
+      <text x="26" y="31" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-weight="800" font-size="15" fill="#ffffff" letter-spacing="1">FPL</text>
+      <path d="M18 40 L26 44 L34 40" stroke="#E90052" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+    </svg>
+    <div class="brand-text">
+      <h1>FPL Assistant</h1>
+      <div class="tag">Scouting &amp; Squad Intelligence</div>
+    </div>
+  </div>
+  <div class="sub">Weighted score blends recent form, fixture difficulty, underlying xG/xA, value, injury-aware availability, minutes security and set-piece duty. Data refreshes live from the official FPL API (cached 15 min).</div>
 
   <div class="tabs">
     <button class="tab-btn active" data-tab="rankings">Rankings</button>
@@ -88,7 +240,7 @@
 // live backend URL, e.g. "https://fpl-assistant-backend.onrender.com".
 const API = (location.hostname === "127.0.0.1" || location.hostname === "localhost")
   ? "http://127.0.0.1:8000"
-  : "https://fpl-assistant-backend-4odu.onrender.com";
+  : "REPLACE_WITH_YOUR_DEPLOYED_BACKEND_URL";
 
 document.querySelectorAll(".tab-btn").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -109,12 +261,18 @@ const TEAM_COLOR = {
   MUN: "#DA291C", NEW: "#241F20", NFO: "#DD0000", TOT: "#132257", SUN: "#EB172B",
 };
 
+function scoreClass(score) {
+  if (score >= 70) return "score-hi";
+  if (score >= 50) return "score-mid";
+  return "score-lo";
+}
+
 function playerRow(p, extra) {
   const news = p.news ? ` <span class="muted" title="${p.news}">⚠️</span>` : "";
   const statusLabel = STATUS_LABEL[p.status] || "";
   const statusBadge = statusLabel ? ` <span class="status-badge" title="${p.news || statusLabel}">${statusLabel}</span>` : "";
   const setPieces = (p.set_piece_duty && p.set_piece_duty.length) ? ` <span class="sp-badge" title="Set-piece duty">${p.set_piece_duty.join(", ")}</span>` : "";
-  const teamColor = TEAM_COLOR[p.team] || "#3d2fd6";
+  const teamColor = TEAM_COLOR[p.team] || "#37003C";
   return `<tr>
     <td class="accent" style="background: linear-gradient(90deg, ${teamColor}, #ffffff);">
       <img class="player-photo" src="${p.photo_url}" alt="" loading="lazy" onerror="this.style.visibility='hidden'" />
@@ -127,7 +285,7 @@ function playerRow(p, extra) {
     <td>${(p.fixture_friendliness).toFixed(1)}/10</td>
     <td>${Math.round(p.starts_ratio * 100)}%</td>
     <td>${p.points_per_million}</td>
-    <td class="score">${p.score}${news}</td>
+    <td><span class="score-pill ${scoreClass(p.score)}">${p.score}</span>${news}</td>
   </tr>`;
 }
 
@@ -151,7 +309,7 @@ async function loadRankings() {
     const res = await fetch(`${API}/api/rankings?${params}`);
     if (!res.ok) throw new Error(await res.text());
     const data = await res.json();
-    out.innerHTML = `<div class="muted">Gameweek ${data.gameweek} · ${data.count} players</div>
+    out.innerHTML = `<div class="muted" style="margin-bottom:10px;">Gameweek ${data.gameweek} · ${data.count} players</div>
       <table>${tableHead()}${data.players.map(p => playerRow(p)).join("")}${tableFoot()}</table>`;
   } catch (e) {
     out.innerHTML = `<div class="err">Couldn't load rankings — is the backend running at ${API}? (${e.message})</div>`;
@@ -184,6 +342,24 @@ async function loadSquad() {
   }
 }
 
+function transferLine(t) {
+  const costLabel = t.net_cost > 0 ? `costs £${t.net_cost.toFixed(1)}m` : t.net_cost < 0 ? `frees up £${Math.abs(t.net_cost).toFixed(1)}m` : "cost-neutral";
+  return `<div>OUT: ${t.out.name} (£${t.out.price.toFixed(1)}m, score ${t.out.score}) → IN: <b>${t.in.name}</b> (£${t.in.price.toFixed(1)}m, score ${t.in.score}) <span class="muted">· ${costLabel} · +${t.score_gain} score</span></div>`;
+}
+
+function transferTierCard(title, tier) {
+  if (!tier) {
+    return `<div class="pill"><div class="n" style="font-size:0.95rem;">${title}</div><div class="muted">No affordable combination found within your bank.</div></div>`;
+  }
+  const lines = tier.transfers.map(transferLine).join("");
+  const totalLabel = tier.total_cost > 0 ? `£${tier.total_cost.toFixed(1)}m spent` : tier.total_cost < 0 ? `£${Math.abs(tier.total_cost).toFixed(1)}m left over` : "cost-neutral";
+  return `<div class="pill">
+    <div class="n" style="font-size:0.95rem; margin-bottom:6px;">${title}</div>
+    ${lines}
+    <div class="muted" style="margin-top:6px;">Total: ${totalLabel} · +${tier.total_score_gain} combined score</div>
+  </div>`;
+}
+
 async function loadMyTeam() {
   const out = document.getElementById("myteamOut");
   const teamId = document.getElementById("teamId").value;
@@ -193,16 +369,19 @@ async function loadMyTeam() {
     const res = await fetch(`${API}/api/my-team/${teamId}`);
     if (!res.ok) { const t = await res.json().catch(()=>({detail:res.statusText})); throw new Error(t.detail || res.statusText); }
     const data = await res.json();
-    const suggestions = data.transfer_suggestions.length
-      ? data.transfer_suggestions.map(s => `<div class="pill">OUT: ${s.out.name} (£${s.out.price}m, score ${s.out.score}) → IN: <b>${s.in.name}</b> (£${s.in.price}m, score ${s.in.score}) <span class="muted">+${s.score_gain} pts model score</span></div>`).join("")
-      : '<div class="muted">No strong transfer suggestions right now — your weakest players don\'t have a clearly better, similarly priced replacement.</div>';
+    const plan = data.transfer_plan;
+    const transferCards = [
+      transferTierCard("Best 1 transfer", plan.best_single_transfer),
+      transferTierCard("Best 2 transfers", plan.best_two_transfers),
+      transferTierCard("Best 3 transfers", plan.best_three_transfers),
+    ].join("");
     out.innerHTML = `
       <div class="card">
-        <div><b>${data.team_name || "Your team"}</b> — ${data.manager_name || ""}</div>
-        <div class="muted">Overall rank: ${data.overall_rank ?? "n/a"} · Gameweek ${data.gameweek_used}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:1.2rem; color:var(--primary); text-transform:uppercase; letter-spacing:0.03em;">${data.team_name || "Your team"}</div>
+        <div class="muted">${data.manager_name || ""} · Overall rank: ${data.overall_rank ?? "n/a"} · Gameweek ${data.gameweek_used} · Bank: £${plan.bank.toFixed(1)}m</div>
       </div>
       <div class="card"><h3>Your Squad (by model score)</h3><table>${tableHead()}${data.squad.map(p => playerRow(p, p.is_captain ? '<span class="cap-badge">C</span>' : p.is_vice_captain ? '<span class="vc-badge">VC</span>' : "")).join("")}${tableFoot()}</table></div>
-      <div class="card"><h3>Suggested Transfers</h3><div class="grid">${suggestions}</div></div>
+      <div class="card"><h3>Transfer Plan <span class="muted" style="text-transform:none; font-weight:400; letter-spacing:normal; font-family:'Inter',sans-serif;">— within your £${plan.bank.toFixed(1)}m bank</span></h3><div class="grid">${transferCards}</div></div>
     `;
   } catch (e) {
     out.innerHTML = `<div class="err">Couldn't load your team: ${e.message}</div>`;
