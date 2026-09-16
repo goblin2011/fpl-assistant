@@ -45,6 +45,15 @@ class PlayerScore:
     set_piece_duty: list[str]  # e.g. ["Penalties", "Corners"]
     set_piece_bonus: float
     photo_url: str
+    selected_by_percent: float  # ownership, 0-100
+    ict_index: float  # FPL's Influence/Creativity/Threat composite
+    bonus: int  # season bonus points total
+    clean_sheets: int
+    goals_conceded: int
+    xgc_per90: float  # expected goals conceded per 90 (defensive stat, DEF/GKP)
+    price_trend: float  # £m price change this gameweek (+ rising, - falling)
+    net_transfers_event: int  # transfers in minus transfers out this gameweek
+    differential: bool  # low-owned (<10%) player scoring in the top quartile of their position
     score: float = 0.0
 
 
@@ -187,6 +196,9 @@ def score_players(bootstrap: dict, fixtures: list, upcoming_gw_count: int = 3) -
 
         fx = fixture_info.get(team_id, {"friendliness": 5.0, "labels": []})
 
+        xgc = float(el.get("expected_goals_conceded") or 0.0)
+        xgc_per90 = xgc * per90_factor if per90_factor else 0.0
+
         raw.append({
             "id": el["id"],
             "name": el["web_name"],
@@ -207,6 +219,14 @@ def score_players(bootstrap: dict, fixtures: list, upcoming_gw_count: int = 3) -
             "set_piece_duty": set_piece_tags,
             "set_piece_bonus": set_piece_bonus,
             "photo_url": photo_url,
+            "selected_by_percent": float(el.get("selected_by_percent") or 0.0),
+            "ict_index": float(el.get("ict_index") or 0.0),
+            "bonus": el.get("bonus", 0),
+            "clean_sheets": el.get("clean_sheets", 0),
+            "goals_conceded": el.get("goals_conceded", 0),
+            "xgc_per90": round(xgc_per90, 2),
+            "price_trend": round(el.get("cost_change_event", 0) / 10.0, 1),
+            "net_transfers_event": el.get("transfers_in_event", 0) - el.get("transfers_out_event", 0),
         })
 
     forms = _normalize([p["form"] for p in raw])
@@ -214,7 +234,8 @@ def score_players(bootstrap: dict, fixtures: list, upcoming_gw_count: int = 3) -
     values = _normalize([p["points_per_million"] for p in raw])
     underlying = _normalize([p["xg_involvement_per90"] for p in raw])
 
-    scored = []
+    scores_by_position: dict[str, list[float]] = {}
+    prelim = []
     for p, f_n, fx_n, v_n, u_n in zip(raw, forms, fixtures_n, values, underlying):
         composite = (
             WEIGHTS["form"] * f_n
@@ -224,8 +245,25 @@ def score_players(bootstrap: dict, fixtures: list, upcoming_gw_count: int = 3) -
             + WEIGHTS["availability"] * p["availability"]
             + WEIGHTS["minutes_security"] * p["starts_ratio"]
         )
-        final_score = composite * 100 + p["set_piece_bonus"]
-        scored.append(PlayerScore(score=round(final_score, 1), **p))
+        final_score = round(composite * 100 + p["set_piece_bonus"], 1)
+        prelim.append((p, final_score))
+        scores_by_position.setdefault(p["position"], []).append(final_score)
+
+    # A "differential" is a lightly-owned player (<10% selected) scoring in
+    # the top quartile of their own position — i.e. a plausible punt that
+    # most rivals' teams won't already have.
+    top_quartile_by_position = {
+        pos: sorted(scores)[int(len(scores) * 0.75)] if scores else 0.0
+        for pos, scores in scores_by_position.items()
+    }
+
+    scored = []
+    for p, final_score in prelim:
+        differential = (
+            p["selected_by_percent"] < 10.0
+            and final_score >= top_quartile_by_position.get(p["position"], 0.0)
+        )
+        scored.append(PlayerScore(score=final_score, differential=differential, **p))
 
     scored.sort(key=lambda p: p.score, reverse=True)
     return scored

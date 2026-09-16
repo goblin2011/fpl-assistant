@@ -23,11 +23,19 @@ Then open `index.html` in a browser (or serve it with
 
 ## What it does
 
-- **Rankings** — every player scored and ranked, filterable by position/price.
-- **Suggested Squad** — builds a valid 15-man squad (2/5/5/3, £100m budget,
-  max 3 per club) and picks a starting XI + captain/vice-captain.
+- **Rankings** — every player scored and ranked. Filter by position, price,
+  or a live search box; sort by score, form, value, ownership, ICT, or
+  price. Extra stats per player: ownership %, ICT index, price trend
+  (rising/falling this gameweek), and a 💎 **Differential** badge for
+  lightly-owned players scoring in the top quartile of their position.
+- **Suggested Squad** — builds a valid 15-man squad (2/5/5/3, configurable
+  budget, max 3 per club), rendered as a real pitch formation with a
+  starting XI + captain/vice-captain, plus the bench.
 - **My Team** — paste your FPL team ID to see your current squad ranked by
   the model, plus transfer suggestions.
+- **News & Opinion** — live discussion threads from r/FantasyPL (free, no
+  API key), for injury chat, captaincy polls, and community opinion
+  alongside the model's own numbers.
 
 ## Model (v2)
 

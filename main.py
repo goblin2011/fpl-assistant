@@ -33,11 +33,25 @@ async def health():
     return {"status": "ok"}
 
 
+SORT_KEYS = {
+    "score": lambda p: p.score,
+    "form": lambda p: p.form,
+    "value": lambda p: p.points_per_million,
+    "ownership": lambda p: p.selected_by_percent,
+    "total_points": lambda p: p.total_points,
+    "ict": lambda p: p.ict_index,
+    "price": lambda p: p.price,
+}
+
+
 @app.get("/api/rankings")
 async def rankings(
     position: Optional[str] = Query(None, description="GKP, DEF, MID, FWD"),
     limit: int = 30,
     max_price: Optional[float] = None,
+    search: Optional[str] = None,
+    sort_by: str = "score",
+    differential_only: bool = False,
 ):
     bootstrap = await fpl_client.get_bootstrap()
     fixtures = await fpl_client.get_fixtures()
@@ -47,12 +61,34 @@ async def rankings(
         players = [p for p in players if p.position == position.upper()]
     if max_price is not None:
         players = [p for p in players if p.price <= max_price]
+    if search:
+        q = search.strip().lower()
+        players = [p for p in players if q in p.name.lower() or q in p.team.lower()]
+    if differential_only:
+        players = [p for p in players if p.differential]
+
+    key_fn = SORT_KEYS.get(sort_by, SORT_KEYS["score"])
+    players.sort(key=key_fn, reverse=True)
 
     return {
         "gameweek": _current_event(bootstrap),
         "count": len(players[:limit]),
         "players": [asdict(p) for p in players[:limit]],
     }
+
+
+@app.get("/api/news")
+async def news(limit: int = 20):
+    """Community news & opinion — hot threads from r/FantasyPL. Best-effort:
+    if Reddit is unreachable or rate-limits us, return an empty list rather
+    than fail the whole request, since this is a bonus feature layered on
+    top of the core rankings/squad tools.
+    """
+    try:
+        posts = await fpl_client.get_community_news(limit=limit)
+        return {"posts": posts, "source": "r/FantasyPL"}
+    except Exception:
+        return {"posts": [], "source": "r/FantasyPL", "error": "News feed unavailable right now."}
 
 
 @app.get("/api/squad/suggested")
