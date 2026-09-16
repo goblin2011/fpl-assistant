@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>FPL Assistant</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 1100px; margin: 0 auto; padding: 24px 16px; background: #0f1115; color: #e8e8ec; }
+  h1 { font-size: 1.4rem; margin-bottom: 4px; }
+  .sub { color: #9a9aa5; margin-bottom: 24px; font-size: 0.9rem; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tab-btn { background: #1b1e27; border: 1px solid #2c2f3a; color: #cfd0d6; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; }
+  .tab-btn.active { background: #3d2fd6; border-color: #3d2fd6; color: white; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .controls { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  select, input, button.action { background: #1b1e27; border: 1px solid #2c2f3a; color: #e8e8ec; padding: 6px 10px; border-radius: 6px; font-size: 0.85rem; }
+  button.action { cursor: pointer; background: #3d2fd6; border-color: #3d2fd6; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #23262f; }
+  th { color: #9a9aa5; font-weight: 600; }
+  .pos-GKP { color: #f0c95e; } .pos-DEF { color: #6ec1ff; } .pos-MID { color: #7ee38a; } .pos-FWD { color: #ff8e7a; }
+  .score { font-weight: 700; }
+  .card { background: #1b1e27; border: 1px solid #2c2f3a; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+  .pill { background: #23263080; border-radius: 8px; padding: 10px; }
+  .pill .n { font-weight: 700; }
+  .muted { color: #9a9aa5; font-size: 0.8rem; }
+  .cap-badge { background: #f0c95e; color: #14151a; border-radius: 5px; padding: 1px 5px; font-size: 0.7rem; margin-left: 6px; }
+  .vc-badge { background: #6ec1ff; color: #14151a; border-radius: 5px; padding: 1px 5px; font-size: 0.7rem; margin-left: 6px; }
+  .status-badge { background: #ff8e7a33; color: #ff8e7a; border-radius: 5px; padding: 1px 5px; font-size: 0.7rem; margin-left: 6px; }
+  .sp-badge { background: #7ee38a33; color: #7ee38a; border-radius: 5px; padding: 1px 5px; font-size: 0.7rem; margin-left: 6px; }
+  table { border-spacing: 0 4px; border-collapse: separate; }
+  tbody tr { background: #171922; }
+  td.accent { width: 54px; padding: 6px 8px; border-radius: 8px 0 0 8px; text-align: center; }
+  tr td:last-child { border-radius: 0 8px 8px 0; }
+  tr th, tr td { border-bottom: none; }
+  .player-photo { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; object-position: top; background: #d8dde6; border: 2px solid rgba(255,255,255,0.85); box-shadow: 0 1px 3px rgba(0,0,0,0.4); display: block; }
+  .player-cell { display: flex; align-items: center; gap: 10px; }
+  .loading { color: #9a9aa5; padding: 20px 0; }
+  .err { color: #ff8e7a; }
+  input#teamId { width: 160px; }
+</style>
+</head>
+<body>
+  <h1>FPL Assistant</h1>
+  <div class="sub">Weighted score = form + fixture ease + underlying stats (xG/xA) + value + availability. Data refreshes from the official FPL API (cached 15 min).</div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="rankings">Rankings</button>
+    <button class="tab-btn" data-tab="squad">Suggested Squad</button>
+    <button class="tab-btn" data-tab="myteam">My Team</button>
+  </div>
+
+  <div id="rankings" class="panel active">
+    <div class="controls">
+      <select id="posFilter">
+        <option value="">All positions</option>
+        <option value="GKP">GKP</option>
+        <option value="DEF">DEF</option>
+        <option value="MID">MID</option>
+        <option value="FWD">FWD</option>
+      </select>
+      <input id="maxPrice" type="number" placeholder="Max price (£m)" step="0.1" style="width:140px" />
+      <button class="action" onclick="loadRankings()">Refresh</button>
+    </div>
+    <div id="rankingsOut" class="loading">Loading…</div>
+  </div>
+
+  <div id="squad" class="panel">
+    <div class="controls">
+      <button class="action" onclick="loadSquad()">Generate suggested squad</button>
+    </div>
+    <div id="squadOut" class="loading">Click "Generate suggested squad" to build a full 15-man squad within £100m.</div>
+  </div>
+
+  <div id="myteam" class="panel">
+    <div class="controls">
+      <input id="teamId" type="number" placeholder="Your FPL team ID" />
+      <button class="action" onclick="loadMyTeam()">Load my team</button>
+    </div>
+    <div id="myteamOut" class="loading">Enter your FPL team ID (from the URL when viewing your team on fantasy.premierleague.com) and click Load.</div>
+  </div>
+
+<script>
+// When running locally against the dev backend, this stays as-is.
+// After deploying the backend (e.g. to Render), replace this with your
+// live backend URL, e.g. "https://fpl-assistant-backend.onrender.com".
+const API = (location.hostname === "127.0.0.1" || location.hostname === "localhost")
+  ? "http://127.0.0.1:8000"
+  : "REPLACE_WITH_YOUR_DEPLOYED_BACKEND_URL";
+
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.tab).classList.add("active");
+  });
+});
+
+const STATUS_LABEL = { a: "", d: "Doubtful", i: "Injured", s: "Suspended", u: "Unavailable", n: "Not in squad" };
+
+// Club primary shirt colours, used as a gradient accent at the start of each row.
+const TEAM_COLOR = {
+  ARS: "#EF0107", AVL: "#670E36", BOU: "#DA291C", BRE: "#E30613", BHA: "#0057B8",
+  CHE: "#034694", COV: "#78D0F7", CRY: "#C4122E", EVE: "#003399", FUL: "#111111",
+  HUL: "#F18A00", IPS: "#0044A9", LEE: "#1D428A", LIV: "#C8102E", MCI: "#6CABDD",
+  MUN: "#DA291C", NEW: "#241F20", NFO: "#DD0000", TOT: "#132257", SUN: "#EB172B",
+};
+
+function playerRow(p, extra) {
+  const news = p.news ? ` <span class="muted" title="${p.news}">⚠️</span>` : "";
+  const statusLabel = STATUS_LABEL[p.status] || "";
+  const statusBadge = statusLabel ? ` <span class="status-badge" title="${p.news || statusLabel}">${statusLabel}</span>` : "";
+  const setPieces = (p.set_piece_duty && p.set_piece_duty.length) ? ` <span class="sp-badge" title="Set-piece duty">${p.set_piece_duty.join(", ")}</span>` : "";
+  const teamColor = TEAM_COLOR[p.team] || "#3d2fd6";
+  return `<tr>
+    <td class="accent" style="background: linear-gradient(90deg, ${teamColor}, #ffffff);">
+      <img class="player-photo" src="${p.photo_url}" alt="" loading="lazy" onerror="this.style.visibility='hidden'" />
+    </td>
+    <td>${p.name}${extra || ""}${statusBadge}${setPieces}</td>
+    <td class="pos-${p.position}">${p.position}</td>
+    <td>${p.team}</td>
+    <td>£${p.price.toFixed(1)}m</td>
+    <td>${p.form}</td>
+    <td>${(p.fixture_friendliness).toFixed(1)}/10</td>
+    <td>${Math.round(p.starts_ratio * 100)}%</td>
+    <td>${p.points_per_million}</td>
+    <td class="score">${p.score}${news}</td>
+  </tr>`;
+}
+
+function tableHead() {
+  return `<thead><tr><th></th><th>Player</th><th>Pos</th><th>Team</th><th>Price</th><th>Form</th><th>Fixtures</th><th>Starts%</th><th>Pts/£m</th><th>Score</th></tr></thead><tbody>`;
+}
+
+function tableFoot() {
+  return `</tbody>`;
+}
+
+async function loadRankings() {
+  const out = document.getElementById("rankingsOut");
+  out.innerHTML = '<div class="loading">Loading…</div>';
+  const pos = document.getElementById("posFilter").value;
+  const maxPrice = document.getElementById("maxPrice").value;
+  const params = new URLSearchParams({ limit: 40 });
+  if (pos) params.set("position", pos);
+  if (maxPrice) params.set("max_price", maxPrice);
+  try {
+    const res = await fetch(`${API}/api/rankings?${params}`);
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    out.innerHTML = `<div class="muted">Gameweek ${data.gameweek} · ${data.count} players</div>
+      <table>${tableHead()}${data.players.map(p => playerRow(p)).join("")}${tableFoot()}</table>`;
+  } catch (e) {
+    out.innerHTML = `<div class="err">Couldn't load rankings — is the backend running at ${API}? (${e.message})</div>`;
+  }
+}
+
+async function loadSquad() {
+  const out = document.getElementById("squadOut");
+  out.innerHTML = '<div class="loading">Building squad…</div>';
+  try {
+    const res = await fetch(`${API}/api/squad/suggested`);
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    const capName = data.captain ? data.captain.name : "-";
+    const vcName = data.vice_captain ? data.vice_captain.name : "-";
+    out.innerHTML = `
+      <div class="card">
+        <div class="grid">
+          <div class="pill"><div class="n">£${data.total_cost}m</div><div class="muted">Squad cost</div></div>
+          <div class="pill"><div class="n">£${data.budget_remaining}m</div><div class="muted">Remaining</div></div>
+          <div class="pill"><div class="n">${capName}</div><div class="muted">Captain (2x)</div></div>
+          <div class="pill"><div class="n">${vcName}</div><div class="muted">Vice-captain</div></div>
+        </div>
+      </div>
+      <div class="card"><h3>Starting XI</h3><table>${tableHead()}${data.starting_xi.map((p,i) => playerRow(p, i===0 ? '<span class="cap-badge">C</span>' : i===1 ? '<span class="vc-badge">VC</span>' : "")).join("")}${tableFoot()}</table></div>
+      <div class="card"><h3>Bench</h3><table>${tableHead()}${data.bench.map(p => playerRow(p)).join("")}${tableFoot()}</table></div>
+    `;
+  } catch (e) {
+    out.innerHTML = `<div class="err">Couldn't build squad. (${e.message})</div>`;
+  }
+}
+
+async function loadMyTeam() {
+  const out = document.getElementById("myteamOut");
+  const teamId = document.getElementById("teamId").value;
+  if (!teamId) { out.innerHTML = '<div class="err">Enter your FPL team ID first.</div>'; return; }
+  out.innerHTML = '<div class="loading">Loading your team…</div>';
+  try {
+    const res = await fetch(`${API}/api/my-team/${teamId}`);
+    if (!res.ok) { const t = await res.json().catch(()=>({detail:res.statusText})); throw new Error(t.detail || res.statusText); }
+    const data = await res.json();
+    const suggestions = data.transfer_suggestions.length
+      ? data.transfer_suggestions.map(s => `<div class="pill">OUT: ${s.out.name} (£${s.out.price}m, score ${s.out.score}) → IN: <b>${s.in.name}</b> (£${s.in.price}m, score ${s.in.score}) <span class="muted">+${s.score_gain} pts model score</span></div>`).join("")
+      : '<div class="muted">No strong transfer suggestions right now — your weakest players don\'t have a clearly better, similarly priced replacement.</div>';
+    out.innerHTML = `
+      <div class="card">
+        <div><b>${data.team_name || "Your team"}</b> — ${data.manager_name || ""}</div>
+        <div class="muted">Overall rank: ${data.overall_rank ?? "n/a"} · Gameweek ${data.gameweek_used}</div>
+      </div>
+      <div class="card"><h3>Your Squad (by model score)</h3><table>${tableHead()}${data.squad.map(p => playerRow(p, p.is_captain ? '<span class="cap-badge">C</span>' : p.is_vice_captain ? '<span class="vc-badge">VC</span>' : "")).join("")}${tableFoot()}</table></div>
+      <div class="card"><h3>Suggested Transfers</h3><div class="grid">${suggestions}</div></div>
+    `;
+  } catch (e) {
+    out.innerHTML = `<div class="err">Couldn't load your team: ${e.message}</div>`;
+  }
+}
+
+loadRankings();
+</script>
+</body>
+</html>
